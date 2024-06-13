@@ -1,0 +1,50 @@
+import os
+import pandas as pd
+import tabula
+import pdfplumber
+import warnings
+import json  # Import json for handling JSON data
+
+# Suppress FutureWarnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+# Paths
+directory_path = r'C:\Users\horon\OneDrive\Desktop\IH Securities\Price Sheet\PDFs'
+
+# Ensure an output directory exists for the JSON files
+output_directory_path = os.path.join(directory_path, "Extracted_JSONs")
+os.makedirs(output_directory_path, exist_ok=True)
+
+for filename in os.listdir(directory_path):
+    if filename.endswith('.pdf'):
+        file_path = os.path.join(directory_path, filename)
+
+        try:
+            # Attempt to extract tables with tabula
+            tables = tabula.read_pdf(file_path, pages='all', multiple_tables=True, stream=True)
+            
+            if tables:
+                for i, table in enumerate(tables):
+                    if not table.empty:
+                        json_file_name = f'{os.path.splitext(filename)[0]}_Table{i}.json'
+                        json_file_path = os.path.join(output_directory_path, json_file_name)
+                        table.to_json(json_file_path, orient='records', lines=True)  # Save as JSON
+            else:
+                # Fallback to pdfplumber if tabula finds no tables
+                with pdfplumber.open(file_path) as pdf:
+                    all_text = ''
+                    for page in pdf.pages:
+                        all_text += page.extract_text() + '\n'
+                    
+                    # Here, you need to implement a method to parse `all_text` into a structured form
+                    # For example, convert text to a list of dictionaries before saving as JSON
+                    # This is placeholder logic; the actual implementation will depend on your text format
+                    # Example placeholder for conversion to a list of dictionaries:
+                    # data_to_save = [{"text": all_text}]
+                    # with open(json_file_path, 'w') as jsonfile:
+                    #     json.dump(data_to_save, jsonfile)
+
+        except Exception as e:
+            print(f"Error processing {filename}: {e}")
+
+print("Data extraction and saving to JSON completed.")
